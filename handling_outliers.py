@@ -27,7 +27,7 @@ data = pd.DataFrame(X_outliers, columns=['X'])
 data['y'] = y_outliers
 
 
-# --- 2. BASELINE MODEL & IMPROVED OUTLIER DETECTION ---
+# --- 2. BASELINE MODEL & OUTLIER DETECTION ---
 
 # Fit a model on the data with outliers to see the negative effect
 model_baseline = LinearRegression()
@@ -43,7 +43,7 @@ plt.ylabel('y')
 plt.legend()
 plt.show()
 
-# --- Outlier Detection using Residuals and IQR (The Correct Way for Regression) ---
+# --- Outlier Detection using Residuals and IQR ---
 # An outlier in regression is a point that deviates from the fitted line.
 # We detect this by finding points with large errors (residuals).
 data['residuals'] = data['y'] - y_pred_baseline
