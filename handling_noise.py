@@ -8,7 +8,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor # <-- Added GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor 
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error
@@ -57,7 +57,7 @@ lasso_model.fit(X_train, y_train)
 rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
 rf_model.fit(X_train, y_train)
 
-# --- Solution 3: Ensemble - Boosting (Gradient Boosting) --- # <-- NEW SECTION
+# --- Solution 3: Ensemble - Boosting (Gradient Boosting) --- 
 # Gradient Boosting builds trees sequentially, where each tree corrects the errors of the previous one.
 # The learning_rate scales the contribution of each tree, preventing overfitting.
 gbr_model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
