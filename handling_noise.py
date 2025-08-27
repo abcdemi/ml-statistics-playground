@@ -8,7 +8,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor # <-- Added GradientBoostingRegressor
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error
@@ -48,24 +48,23 @@ overfitting_model.fit(X_train, y_train)
 # --- 4. IMPLEMENTING SOLUTIONS TO HANDLE NOISE ---
 
 # --- Solution 1: Regularization (Lasso) ---
-# Lasso (L1 Regularization) adds a penalty equal to the absolute value of the magnitude of coefficients.
-# Math: Cost = Sum of Squared Errors + alpha * sum(|coefficients|)
-# This forces the coefficients of irrelevant (noisy) features towards zero, effectively selecting only the important ones.
+# Lasso (L1 Regularization) forces coefficients of irrelevant features towards zero.
 lasso_model = Lasso(alpha=0.01)
 lasso_model.fit(X_train, y_train)
 
-# --- Solution 2: Robust Ensemble Algorithm (Random Forest) ---
-# Random Forest is an ensemble method using bagging.
-# It builds many decision trees on different random subsets of the data and features.
-# By averaging their predictions, it reduces variance and smooths out the noise.
+# --- Solution 2: Ensemble - Bagging (Random Forest) ---
+# Random Forest averages many decorrelated decision trees to reduce variance.
 rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
 rf_model.fit(X_train, y_train)
 
-# --- Solution 3: Dimensionality Reduction (PCA) ---
-# PCA transforms the data to a new coordinate system of principal components.
-# It captures the maximum variance (the signal) in the first few components,
-# effectively filtering out the random, high-dimensional noise.
-# We create a pipeline to first apply PCA and then fit a linear model.
+# --- Solution 3: Ensemble - Boosting (Gradient Boosting) --- # <-- NEW SECTION
+# Gradient Boosting builds trees sequentially, where each tree corrects the errors of the previous one.
+# The learning_rate scales the contribution of each tree, preventing overfitting.
+gbr_model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
+gbr_model.fit(X_train, y_train)
+
+# --- Solution 4: Dimensionality Reduction (PCA) ---
+# PCA finds the principal components of the signal, filtering out high-dimensional noise.
 pca_pipeline = Pipeline([
     ('pca', PCA(n_components=2)), # Reduce to 2 components from 11
     ('linear_regression', LinearRegression())
@@ -80,6 +79,7 @@ models = {
     "Overfitting Decision Tree": overfitting_model,
     "Regularization (Lasso)": lasso_model,
     "Ensemble (Random Forest)": rf_model,
+    "Ensemble (Gradient Boosting)": gbr_model, # <-- Added Gradient Boosting
     "Dimensionality Reduction (PCA)": pca_pipeline
 }
 
@@ -111,13 +111,3 @@ plt.show()
 results_df = pd.DataFrame.from_dict(results, orient='index', columns=['Test_RMSE']).sort_values('Test_RMSE')
 print("--- Final Model Performance on Test Set ---")
 print(results_df)
-
-# Visualize the coefficients from Lasso to show feature selection
-lasso_coefs = pd.DataFrame({
-    'Feature': ['True Feature'] + [f'Noise Feature {i+1}' for i in range(n_noise_features)],
-    'Coefficient': lasso_model.coef_
-}).sort_values('Coefficient', key=abs, ascending=False)
-
-print("\n--- Lasso Coefficients (Feature Importance) ---")
-print(lasso_coefs.round(4))
-print("\nNote how Lasso correctly assigned a large coefficient to the true feature and shrunk the noisy ones to zero.")
