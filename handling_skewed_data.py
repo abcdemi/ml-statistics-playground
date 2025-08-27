@@ -1,4 +1,4 @@
-# --- Skewed Data Handling ---
+# --- Skewed Data Handling Demonstration Script (Corrected) ---
 
 # 1. SETUP: Import libraries
 import numpy as np
@@ -17,21 +17,22 @@ sns.set_theme(style="whitegrid")
 plt.rcParams['figure.figsize'] = (10, 6)
 pd.options.mode.chained_assignment = None # Hide warning
 
-# --- UTILITY FUNCTION FOR PLOTTING ---
+# --- UTILITY FUNCTION FOR PLOTTING (CORRECTED) ---
 def plot_distributions(original_data, transformed_data_dict, title_prefix):
     """Plots the original distribution against several transformed distributions."""
     num_plots = len(transformed_data_dict) + 1
     fig, axes = plt.subplots(1, num_plots, figsize=(5 * num_plots, 4))
 
-    # Plot original
+    # Plot original - ensure it's a pandas Series before calling .skew()
     sns.histplot(original_data, kde=True, ax=axes[0])
-    axes[0].set_title(f"Original (Skew: {original_data.skew():.2f})")
+    axes[0].set_title(f"Original (Skew: {pd.Series(original_data).skew():.2f})")
 
     # Plot transformed
     i = 1
     for name, data in transformed_data_dict.items():
         sns.histplot(data, kde=True, ax=axes[i])
-        axes[i].set_title(f"{name} (Skew: {data.skew():.2f})")
+        # CRITICAL FIX: Convert numpy array 'data' to a pandas Series to use the .skew() method
+        axes[i].set_title(f"{name} (Skew: {pd.Series(data).skew():.2f})")
         i += 1
     fig.suptitle(f"{title_prefix}: Original vs. Transformed Distributions", fontsize=16)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
