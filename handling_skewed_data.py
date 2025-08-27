@@ -1,4 +1,4 @@
-# --- Skewed Data Handling Demonstration Script (Corrected) ---
+# --- Skewed Data Handling ---
 
 # 1. SETUP: Import libraries
 import numpy as np
@@ -17,7 +17,7 @@ sns.set_theme(style="whitegrid")
 plt.rcParams['figure.figsize'] = (10, 6)
 pd.options.mode.chained_assignment = None # Hide warning
 
-# --- UTILITY FUNCTION FOR PLOTTING (CORRECTED) ---
+# --- UTILITY FUNCTION FOR PLOTTING ---
 def plot_distributions(original_data, transformed_data_dict, title_prefix):
     """Plots the original distribution against several transformed distributions."""
     num_plots = len(transformed_data_dict) + 1
