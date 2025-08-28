@@ -1,4 +1,4 @@
-# --- Quantile Regression Evaluation Script ---
+# --- Quantile Regression Evaluation Script (Corrected) ---
 
 # 1. SETUP: Import libraries
 import numpy as np
@@ -109,7 +109,8 @@ plt.scatter(X_test, y_test, color='blue', edgecolor='k', s=80, label='Test Data 
 # Plot the mean-predicting models
 plt.plot(X_plot, y_plot_lr, 'r-', linewidth=2, label=f'Linear Regression (Test RMSE: {rmse_lr:.2f})')
 plt.plot(X_plot, y_plot_rf, 'g-.', linewidth=2, label=f'Random Forest (Test RMSE: {rmse_rf:.2f})')
-plt.plot(X_plot, y_plot_gbr, 'purple', linestyle=(0, (3, 1, 1, 1)), linewidth=2, label=f'Gradient Boosting (Test RMSE: {gbr_gbr:.2f})')
+# <-- CORRECTED TYPO HERE
+plt.plot(X_plot, y_plot_gbr, 'purple', linestyle=(0, (3, 1, 1, 1)), linewidth=2, label=f'Gradient Boosting (Test RMSE: {rmse_gbr:.2f})')
 
 # Plot the quantile regression lines and interval
 plt.plot(X_plot, y_plot_quantiles[0.5], 'k-', linewidth=2, label=f'QR Median (Pinball Loss: {pinball_loss_dict[0.5]:.2f})')
