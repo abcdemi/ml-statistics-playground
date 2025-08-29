@@ -1,4 +1,4 @@
-# --- Tobit Model and Censored Data Demonstration (Final Corrected Version) ---
+# --- Tobit Model and Censored Data Demonstration (Corrected Final) ---
 
 # 1. SETUP: Import libraries
 import numpy as np
@@ -8,7 +8,7 @@ import seaborn as sns
 from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 from scipy.stats import norm
-from statsmodels.base.model import GenericLikelihoodModel
+from statsmodels.base.model import GenericLikelihoodModel # Using GenericLikelihoodModel for .fit()
 
 # Set plot style and figure size
 sns.set_theme(style="whitegrid")
@@ -50,47 +50,48 @@ print("="*60)
 
 
 # --- Model 2: The Tobit Model ---
+# This class now correctly defines `loglikeobs` for GenericLikelihoodModel.
 class Tobit(GenericLikelihoodModel):
     def __init__(self, endog, exog, censor_point, **kwds):
         super(Tobit, self).__init__(endog, exog, **kwds)
         self.censor_point = censor_point
 
-    def _get_likelihood_components(self, params):
-        """Helper to calculate mu, sigma, and indices."""
+    # --- CRITICAL FIX: Define loglikeobs for per-observation log-likelihood ---
+    def loglikeobs(self, params):
         beta = params[:-1]
-        sigma = np.exp(params[-1])
+        sigma = np.exp(params[-1]) # Ensure sigma > 0
+
+        # Numerical stability check for sigma: must be strictly positive
+        if sigma <= 1e-8:
+            return np.full(self.endog.shape, -np.inf) # Return array of -inf for invalid sigma
+
         mu = self.exog @ beta
+
         uncensored_idx = self.endog < self.censor_point
         censored_idx = ~uncensored_idx
-        return mu, sigma, uncensored_idx, censored_idx
 
-    # --- REQUIRED FOR numerical optimization and total loss ---
-    def nloglike(self, params):
-        ll_obs = self.nloglikeobs(params)
-        return np.sum(ll_obs)
+        # Initialize array for individual log-likelihoods
+        ll_individual = np.zeros_like(self.endog, dtype=float)
 
-    # --- CRITICAL: REQUIRED BY GenericLikelihoodModel for diagnostics ---
-    def nloglikeobs(self, params):
-        mu, sigma, uncensored_idx, censored_idx = self._get_likelihood_components(params)
-        
-        # Initialize log-likelihood array
-        ll_array = np.zeros(self.nobs)
-        
-        # Part 1: UNCENSORED (Log PDF)
-        ll_uncensored = norm.logpdf(self.endog[uncensored_idx], loc=mu[uncensored_idx], scale=sigma)
-        ll_array[uncensored_idx] = ll_uncensored
+        # Log-likelihood for uncensored observations: Normal PDF
+        ll_individual[uncensored_idx] = norm.logpdf(self.endog[uncensored_idx], loc=mu[uncensored_idx], scale=sigma)
 
-        # Part 2: CENSORED (Log Survival Function)
-        ll_censored = norm.logsf(self.censor_point, loc=mu[censored_idx], scale=sigma)
-        ll_array[censored_idx] = ll_censored
+        # Log-likelihood for censored observations: Log of Survival Function (P(Y* > c))
+        ll_individual[censored_idx] = norm.logsf(self.censor_point, loc=mu[censored_idx], scale=sigma)
 
-        # Return the negative log-likelihood per observation
-        return -ll_array
+        return ll_individual
 
-    def predict(self, params, exog=None, *args, **kwargs):
+    # Define loglike as the sum of loglikeobs (often implicitly handled if loglikeobs exists, but good to be explicit)
+    def loglike(self, params):
+        return np.sum(self.loglikeobs(params))
+
+    # The predict method on the model instance, for clarity.
+    # statsmodels.regression.linear_model.RegressionResults.predict is usually preferred.
+    def predict(self, params, exog=None):
         if exog is None:
             exog = self.exog
         beta = params[:-1]
+        # For Tobit, we predict the latent variable value
         return exog @ beta
 
 # Fit the Tobit model
@@ -98,7 +99,7 @@ X_const = sm.add_constant(X)
 # Start parameters: [intercept, slope, log(sigma)]
 start_params = [ols_intercept, ols_slope, np.log(np.std(y_observed))]
 tobit_model_instance = Tobit(y_observed, X_const, censoring_point)
-tobit_fit_results = tobit_model_instance.fit(start_params=start_params, disp=False) # disp=False suppresses optimization messages
+tobit_fit_results = tobit_model_instance.fit(start_params=start_params)
 tobit_params = tobit_fit_results.params
 tobit_intercept = tobit_params[0]
 tobit_slope = tobit_params[1]
