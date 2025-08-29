@@ -56,7 +56,7 @@ class Tobit(GenericLikelihoodModel):
         super(Tobit, self).__init__(endog, exog, **kwds)
         self.censor_point = censor_point
 
-    # --- CRITICAL FIX: Define loglikeobs for per-observation log-likelihood ---
+    # Define loglikeobs for per-observation log-likelihood ---
     def loglikeobs(self, params):
         beta = params[:-1]
         sigma = np.exp(params[-1]) # Ensure sigma > 0
