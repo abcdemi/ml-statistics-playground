@@ -8,6 +8,7 @@ import seaborn as sns
 from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 from scipy.stats import norm
+from statsmodels.base.model import LikelihoodModel # <-- CORRECTED IMPORT
 
 # Set plot style and figure size
 sns.set_theme(style="whitegrid")
@@ -16,7 +17,6 @@ plt.rcParams['figure.figsize'] = (12, 8)
 # --- 2. THE EXPERIMENT: Data Generation ---
 
 # Step 1: Define the TRUE underlying linear relationship for the latent variable.
-# This is the reality we are trying to recover.
 np.random.seed(42)
 n_samples = 200
 true_intercept = 5
@@ -28,7 +28,6 @@ error = np.random.normal(0, 3, n_samples)
 y_latent = true_intercept + true_slope * X + error
 
 # Step 3: Create the OBSERVED variable y by censoring the latent variable.
-# Any value of y_latent above 20 will be recorded as exactly 20.
 censoring_point = 20
 y_observed = np.copy(y_latent)
 y_observed[y_observed > censoring_point] = censoring_point
@@ -37,7 +36,6 @@ is_censored = (y_latent > censoring_point)
 # --- 3. MODELING: Comparing Naive OLS vs. Tobit ---
 
 # --- Model 1: The Naive OLS Regression ---
-# This model is blind to the censoring and will produce biased results.
 ols_model = LinearRegression()
 ols_model.fit(X.reshape(-1, 1), y_observed)
 ols_intercept = ols_model.intercept_
@@ -53,8 +51,8 @@ print("="*60)
 
 # --- Model 2: The Tobit Model ---
 # This requires a custom likelihood function in statsmodels.
-# This explicitly defines the "latent variable trick".
-class Tobit(sm.LikelihoodModel):
+# We inherit from LikelihoodModel directly.
+class Tobit(LikelihoodModel): # <-- CORRECTED INHERITANCE
     def __init__(self, endog, exog, censor_point):
         super(Tobit, self).__init__(endog, exog)
         self.censor_point = censor_point
@@ -73,12 +71,9 @@ class Tobit(sm.LikelihoodModel):
 
         # --- This is the key part of the Tobit model ---
         # Part 1: Likelihood for the UNCENSORED observations
-        # This is just the standard normal log-likelihood.
         ll_uncensored = norm.logpdf(self.endog[uncensored_idx], loc=mu[uncensored_idx], scale=sigma)
 
         # Part 2: Likelihood for the CENSORED observations
-        # This is the log of the probability of being AT OR BEYOND the censoring point.
-        # We use the log of the survival function (1 - CDF).
         ll_censored = norm.logsf(self.censor_point, loc=mu[censored_idx], scale=sigma)
 
         # The total log-likelihood is the sum of the parts
