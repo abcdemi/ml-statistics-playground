@@ -1,4 +1,4 @@
-# --- Tobit Model and Censored Data Demonstration ---
+# --- Tobit Model and Censored Data Demonstration (Final Corrected Version) ---
 
 # 1. SETUP: Import libraries
 import numpy as np
@@ -8,7 +8,7 @@ import seaborn as sns
 from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 from scipy.stats import norm
-from statsmodels.base.model import LikelihoodModel # <-- CORRECTED IMPORT
+from statsmodels.base.model import GenericLikelihoodModel
 
 # Set plot style and figure size
 sns.set_theme(style="whitegrid")
@@ -50,36 +50,44 @@ print("="*60)
 
 
 # --- Model 2: The Tobit Model ---
-# This requires a custom likelihood function in statsmodels.
-# We inherit from LikelihoodModel directly.
-class Tobit(LikelihoodModel): # <-- CORRECTED INHERITANCE
-    def __init__(self, endog, exog, censor_point):
-        super(Tobit, self).__init__(endog, exog)
+class Tobit(GenericLikelihoodModel):
+    def __init__(self, endog, exog, censor_point, **kwds):
+        super(Tobit, self).__init__(endog, exog, **kwds)
         self.censor_point = censor_point
 
-    def nloglike(self, params):
-        # Unpack parameters: beta coefficients and sigma (std dev of error)
+    def _get_likelihood_components(self, params):
+        """Helper to calculate mu, sigma, and indices."""
         beta = params[:-1]
-        sigma = np.exp(params[-1]) # Use log-sigma for stability
-
-        # Calculate the linear prediction for the latent variable
+        sigma = np.exp(params[-1])
         mu = self.exog @ beta
-
-        # Separate data into censored and uncensored parts
         uncensored_idx = self.endog < self.censor_point
         censored_idx = ~uncensored_idx
+        return mu, sigma, uncensored_idx, censored_idx
 
-        # --- This is the key part of the Tobit model ---
-        # Part 1: Likelihood for the UNCENSORED observations
+    # --- REQUIRED FOR numerical optimization and total loss ---
+    def nloglike(self, params):
+        ll_obs = self.nloglikeobs(params)
+        return np.sum(ll_obs)
+
+    # --- CRITICAL: REQUIRED BY GenericLikelihoodModel for diagnostics ---
+    def nloglikeobs(self, params):
+        mu, sigma, uncensored_idx, censored_idx = self._get_likelihood_components(params)
+        
+        # Initialize log-likelihood array
+        ll_array = np.zeros(self.nobs)
+        
+        # Part 1: UNCENSORED (Log PDF)
         ll_uncensored = norm.logpdf(self.endog[uncensored_idx], loc=mu[uncensored_idx], scale=sigma)
+        ll_array[uncensored_idx] = ll_uncensored
 
-        # Part 2: Likelihood for the CENSORED observations
+        # Part 2: CENSORED (Log Survival Function)
         ll_censored = norm.logsf(self.censor_point, loc=mu[censored_idx], scale=sigma)
+        ll_array[censored_idx] = ll_censored
 
-        # The total log-likelihood is the sum of the parts
-        return -np.sum(ll_uncensored) - np.sum(ll_censored)
+        # Return the negative log-likelihood per observation
+        return -ll_array
 
-    def predict(self, params, exog=None):
+    def predict(self, params, exog=None, *args, **kwargs):
         if exog is None:
             exog = self.exog
         beta = params[:-1]
@@ -89,8 +97,9 @@ class Tobit(LikelihoodModel): # <-- CORRECTED INHERITANCE
 X_const = sm.add_constant(X)
 # Start parameters: [intercept, slope, log(sigma)]
 start_params = [ols_intercept, ols_slope, np.log(np.std(y_observed))]
-tobit_model = Tobit(y_observed, X_const, censoring_point).fit(start_params=start_params)
-tobit_params = tobit_model.params
+tobit_model_instance = Tobit(y_observed, X_const, censoring_point)
+tobit_fit_results = tobit_model_instance.fit(start_params=start_params, disp=False) # disp=False suppresses optimization messages
+tobit_params = tobit_fit_results.params
 tobit_intercept = tobit_params[0]
 tobit_slope = tobit_params[1]
 
