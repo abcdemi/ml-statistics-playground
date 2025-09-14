@@ -20,13 +20,6 @@ Each section covers a fundamental challenge in data modeling, explains the theor
 4.  [**Model Validation & Inference**](#4-model-validation--inference)
     *   [Time Series Diagnostics](#41-time-series-diagnostics-ljung-box--newey-west)
     *   [Bootstrapping](#42-bootstrapping-inference-without-assumptions)
-5.  [**Classification Metrics**](#5-classification-metrics)
-    *   [ROC Curves and AUC Score](#51-roc-curves-and-auc-score)
-6.  [**Environment Setup & Troubleshooting**](#6-environment-setup--troubleshooting)
-    *   Why Use Virtual Environments?
-    *   Fixing a "Broken" Conda Environment with Mamba
-
----
 
 ## 1. Core Regression Concepts
 
@@ -158,46 +151,3 @@ This section provides practical Python experiments for diagnosing and solving co
     2.  Constructing Confidence Intervals.
     3.  Performing Hypothesis Tests.
 *   **Script**: `bootstrapping.py`
-
----
-
-## 5. Classification Metrics
-
-### 5.1 ROC Curves and AUC Score
-
-*   **Concept**: A fundamental metric for evaluating classification models.
-*   **ROC Curve**: A plot of the True Positive Rate vs. the False Positive Rate at all possible classification thresholds. A good model bows towards the top-left corner.
-*   **AUC (Area Under the Curve)**: A single number summarizing the ROC curve.
-    *   **AUC = 1.0**: Perfect model.
-    *   **AUC = 0.5**: Useless (random) model.
-    *   **Probabilistic Meaning**: The AUC is the probability that a randomly chosen positive sample is ranked higher by the model than a randomly chosen negative sample.
-
----
-
-## 6. Environment Setup & Troubleshooting
-
-This project has demonstrated that a clean, stable Python environment is non-negotiable. The errors encountered (`numpy.dtype size changed`, `numpy.core.multiarray failed to import`, `OSError: Access is denied`) are almost always symptoms of a corrupted or inconsistent package installation.
-
-### Why Use Virtual Environments?
-
-A virtual environment is an isolated, self-contained directory that holds a specific version of Python plus all the packages a specific project needs. This prevents conflicts between projects that may require different versions of the same library.
-
-### Fixing a "Broken" Conda Environment with Mamba
-
-*   **The Problem**: `conda` can become very slow or fail to "solve environments" when the base installation is corrupted.
-*   **The Solution**: `mamba`. A parallel, C++-based re-implementation of `conda` that is dramatically faster and more reliable.
-*   **Installation (One-Time Setup)**:
-    ```bash
-    conda install -n base -c conda-forge mamba
-    ```
-*   **Usage**: Simply replace `conda` with `mamba` for all installation commands.
-    ```bash
-    # Instead of: conda install pandas
-    mamba install pandas
-
-    # Instead of: conda create -n new_env python=3.10
-    mamba create -n new_env python=3.10
-    ```*   **The Master Repair Command**: If your environment is broken, this command will fix it by reinstalling the core libraries from the reliable `conda-forge` channel.
-    ```bash
-    mamba install --force-reinstall -c conda-forge numpy pandas scipy statsmodels scikit-learn matplotlib seaborn
-    ```
